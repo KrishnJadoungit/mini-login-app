@@ -1,0 +1,11 @@
+# Node modules should not be tracked
+node_modules/
+
+# Environment variables should remain secret
+.env
+
+# Logs
+*.log
+
+# VSCode settings
+.vscode/
