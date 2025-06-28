@@ -1,0 +1,33 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  sshPrivateKey: $(SSH_PRIVATE_KEY)   # Secure PEM key from Azure DevOps
+  ec2User: ec2-user
+  ec2Host: 13.51.70.24                 # ✅ Use your actual EC2 IP
+  appPath: /home/ec2-user/mini-login-app
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '18.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    echo "$(sshPrivateKey)" > private_key.pem
+    chmod 600 private_key.pem
+  displayName: 'Create SSH Key file'
+
+- script: |
+    ssh -o StrictHostKeyChecking=no -i private_key.pem $(ec2User)@$(ec2Host) "
+      cd $(appPath) &&
+      git pull origin main &&
+      npm install &&
+      pm2 restart server.js || pm2 start server.js
+    "
+  displayName: 'Deploy to AWS EC2 via SSH'
