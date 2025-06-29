@@ -1,27 +1,22 @@
 trigger:
-  - main
+  branches:
+    include:
+      - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
 variables:
-  SSH_PRIVATE_KEY: $(PRIVATE_KEY)
+  ec2_host: 52.66.86.112
+  ec2_user: ec2-user
 
 steps:
-  - task: UseNode@1
-    inputs:
-      version: '18.x'
-
-  - script: |
-      echo "$SSH_PRIVATE_KEY" > private-key.pem
-      chmod 600 private-key.pem
-    displayName: 'Create private key file'
-
-  - script: |
-      ssh -o StrictHostKeyChecking=no -i private-key.pem ec2-user@52.66.86.112 << 'EOF'
-        cd mini-login-app
-        git pull origin main
-        npm install
-        pm2 restart all || pm2 start server.js --name server
-      EOF
-    displayName: 'Deploy to EC2'
+- script: |
+    echo "$SSH_PRIVATE_KEY" > ec2-key.pem
+    chmod 600 ec2-key.pem
+    ssh -o StrictHostKeyChecking=no -i ec2-key.pem $(ec2_user)@$(ec2_host) "
+      cd ~/mini-login-app &&
+      git pull origin main &&
+      pm2 restart all
+    "
+  displayName: 'Deploy to EC2'
