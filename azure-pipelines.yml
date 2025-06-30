@@ -20,15 +20,15 @@ jobs:
     inputs:
       targetType: inline
       script: |
-        echo "$(ssh_key_base64)" | base64 -d > $(ssh_key_file)
-        chmod 600 $(ssh_key_file)
+        echo "${ssh_key_base64}" | base64 -d > ${ssh_key_file}
+        chmod 600 ${ssh_key_file}
 
   - task: Bash@3
     displayName: "🚀 Deploy to EC2"
     inputs:
       targetType: inline
       script: |
-        ssh -o StrictHostKeyChecking=no -i $(ssh_key_file) $(ec2_user)@$(ec2_ip) << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i ${ssh_key_file} ${ec2_user}@${ec2_ip} << 'EOF'
           cd ~/mini-login-app
           git pull origin main
           npm install
