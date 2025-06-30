@@ -8,24 +8,26 @@ pool:
 
 jobs:
 - job: Deploy
-  variables:
-    ssh_key_file: ec2-key.pem
-
   steps:
+
   - task: Bash@3
     displayName: "🔐 Decode SSH Key"
+    env:
+      EC2_SSH_KEY: $(EC2_SSH_KEY)
     inputs:
       targetType: inline
       script: |
-        echo "${EC2_SSH_KEY}" | base64 -d > ${ssh_key_file}
-        chmod 600 ${ssh_key_file}
+        echo "$EC2_SSH_KEY" | base64 -d > ec2-key.pem
+        chmod 600 ec2-key.pem
 
   - task: Bash@3
     displayName: "🚀 SSH and Deploy"
+    env:
+      EC2_PUBLIC_IP: $(EC2_PUBLIC_IP)
     inputs:
       targetType: inline
       script: |
-        ssh -o StrictHostKeyChecking=no -i ${ssh_key_file} ec2-user@${EC2_PUBLIC_IP} << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@$EC2_PUBLIC_IP << 'EOF'
           cd ~/mini-login-app
           git pull origin main
           npm install
