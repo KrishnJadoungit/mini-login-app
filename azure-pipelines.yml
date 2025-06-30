@@ -7,16 +7,15 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  ec2_host: 52.66.86.112
-  ec2_user: ec2-user
+  ec2_host: ec2-user@35.154.186.10  
 
 steps:
 - script: |
     echo "$SSH_PRIVATE_KEY" > ec2-key.pem
     chmod 600 ec2-key.pem
-    ssh -o StrictHostKeyChecking=no -i ec2-key.pem $(ec2_user)@$(ec2_host) "
+    ssh -o StrictHostKeyChecking=no -i ec2-key.pem $(ec2_host) "
       cd ~/mini-login-app &&
       git pull origin main &&
-      pm2 restart all
+      pm2 restart mini-login-app
     "
   displayName: 'Deploy to EC2'
