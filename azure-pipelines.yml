@@ -7,15 +7,30 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  ec2_host: ec2-user@35.154.186.10  
+  ssh_key_file: ec2-key.pem
+  ec2_user: ec2-user
+  ec2_ip: $(EC2_PUBLIC_IP)         # Secret me add kiya hua
+  ssh_key_base64: $(EC2_SSH_KEY)   # Secret me add kiya hua
 
-steps:
-- script: |
-    echo "$SSH_PRIVATE_KEY" | base64 -d > ec2-key.pem
-    chmod 600 ec2-key.pem
-    ssh -o StrictHostKeyChecking=no -i ec2-key.pem $(ec2_host) "
-      cd ~/mini-login-app &&
-      git pull origin main &&
-      pm2 restart mini-login-app
-    "
-  displayName: 'Deploy to EC2'
+jobs:
+- job: Deploy
+  steps:
+  - task: Bash@3
+    displayName: "🔐 Decode SSH key"
+    inputs:
+      targetType: inline
+      script: |
+        echo "$ssh_key_base64" | base64 -d > $ssh_key_file
+        chmod 600 $ssh_key_file
+
+  - task: Bash@3
+    displayName: "🚀 Deploy to EC2"
+    inputs:
+      targetType: inline
+      script: |
+        ssh -o StrictHostKeyChecking=no -i $ssh_key_file $(ec2_user)@$(ec2_ip) << 'EOF'
+          cd ~/mini-login-app
+          git pull origin main
+          npm install
+          pm2 restart all
+        EOF
