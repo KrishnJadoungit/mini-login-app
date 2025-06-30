@@ -7,21 +7,31 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  - group: EC2Secrets   # 👈 Use your variable group here (created in Library)
+  - group: EC2Secrets   # ✅ Make sure you’ve linked this correctly in the pipeline UI
 
 jobs:
 - job: Deploy
+  displayName: "🚀 Deploy to EC2 Instance"
   steps:
-    - script: |
-        echo "$EC2_SSH_KEY" | base64 -d > ec2-key.pem
-        chmod 600 ec2-key.pem
-      displayName: "🔐 Decode SSH Key"
 
-    - script: |
-        ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@$(EC2_PUBLIC_IP) << 'EOF'
-          cd ~/mini-login-app
-          git pull origin main
-          npm install
-          pm2 restart all
-        EOF
-      displayName: "🚀 Deploy to EC2"
+    - task: Bash@3
+      name: DecodeKey
+      displayName: "🔐 Decode EC2 SSH Key"
+      inputs:
+        targetType: inline
+        script: |
+          echo "$(EC2_SSH_KEY)" | base64 -d > ec2-key.pem
+          chmod 600 ec2-key.pem
+          ls -l ec2-key.pem
+
+    - task: Bash@3
+      displayName: "🚀 SSH into EC2 and Deploy"
+      inputs:
+        targetType: inline
+        script: |
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@$(EC2_PUBLIC_IP) << EOF
+            cd ~/mini-login-app
+            git pull origin main
+            npm install
+            pm2 restart all
+          EOF
