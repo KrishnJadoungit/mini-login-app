@@ -28,7 +28,7 @@ jobs:
     inputs:
       targetType: inline
       script: |
-        ssh -o StrictHostKeyChecking=no -i $ssh_key_file $(ec2_user)@$(ec2_ip) << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i $ssh_key_file $ec2_user@$ec2_ip << 'EOF'
           cd ~/mini-login-app
           git pull origin main
           npm install
