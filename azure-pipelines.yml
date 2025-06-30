@@ -9,8 +9,8 @@ pool:
 variables:
   ssh_key_file: ec2-key.pem
   ec2_user: ec2-user
-  ec2_ip: $(EC2_PUBLIC_IP)
-  ssh_key_base64: $(EC2_SSH_KEY)
+  ec2_ip: $(EC2_PUBLIC_IP)         # ✅ Secret me added
+  ssh_key_base64: $(EC2_SSH_KEY)   # ✅ Secret me added (base64 encoded private key)
 
 jobs:
 - job: Deploy
@@ -20,17 +20,17 @@ jobs:
     inputs:
       targetType: inline
       script: |
-        echo "$ssh_key_base64" | base64 -d > $ssh_key_file
-        chmod 600 $ssh_key_file
+        echo "$ssh_key_base64" | base64 -d > "$ssh_key_file"
+        chmod 600 "$ssh_key_file"
 
   - task: Bash@3
-    displayName: "🚀 SSH and Deploy to EC2"
+    displayName: "🚀 Deploy to EC2"
     inputs:
       targetType: inline
       script: |
-        ssh -o StrictHostKeyChecking=no -i $ssh_key_file $ec2_user@$ec2_ip << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i "$ssh_key_file" $ec2_user@$ec2_ip << 'EOF'
           cd ~/mini-login-app
           git pull origin main
           npm install
-          pm2 restart all || pm2 start npm --name "mini-login-app" -- start
+          pm2 restart all
         EOF
