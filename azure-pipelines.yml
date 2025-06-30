@@ -11,7 +11,7 @@ variables:
 
 steps:
 - script: |
-    echo "$SSH_PRIVATE_KEY" > ec2-key.pem
+    echo "$SSH_PRIVATE_KEY" | base64 -d > ec2-key.pem
     chmod 600 ec2-key.pem
     ssh -o StrictHostKeyChecking=no -i ec2-key.pem $(ec2_host) "
       cd ~/mini-login-app &&
