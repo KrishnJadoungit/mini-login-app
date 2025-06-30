@@ -7,31 +7,33 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  EC2_PUBLIC_IP: $(EC2_PUBLIC_IP)
-  EC2_SSH_KEY: $(EC2_SSH_KEY)
+  EC2_USER: ec2-user
+  EC2_IP: $(EC2_PUBLIC_IP)       # 👈 secret me daala hua IP (example: 3.111.2.222)
+  EC2_SSH_KEY: $(EC2_SSH_KEY)    # 👈 secret me daala hua base64 encoded private key
 
 jobs:
 - job: Deploy
+  displayName: "🚀 Deploy to EC2"
   steps:
-  - task: Bash@3
-    displayName: "🔐 Decode SSH key"
-    inputs:
-      targetType: inline
-      script: |
-        ssh_key_file="ec2-key.pem"
-        echo "${EC2_SSH_KEY}" | base64 -d > $ssh_key_file
-        chmod 600 $ssh_key_file
-        ls -l $ssh_key_file
+    - checkout: self
 
-  - task: Bash@3
-    displayName: "🚀 Deploy to EC2"
-    inputs:
-      targetType: inline
-      script: |
-        ssh_key_file="ec2-key.pem"
-        ssh -o StrictHostKeyChecking=no -i $ssh_key_file ec2-user@${EC2_PUBLIC_IP} << 'EOF'
-          cd ~/mini-login-app
-          git pull origin main
-          npm install
-          pm2 restart all
-        EOF
+    - task: Bash@3
+      displayName: "🔐 Decode SSH Key"
+      inputs:
+        targetType: inline
+        script: |
+          echo "$EC2_SSH_KEY" | base64 -d > ec2-key.pem
+          chmod 600 ec2-key.pem
+          ls -l ec2-key.pem
+
+    - task: Bash@3
+      displayName: "🚀 SSH to EC2 and Deploy"
+      inputs:
+        targetType: inline
+        script: |
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem $(EC2_USER)@$(EC2_IP) << 'EOF'
+            cd ~/mini-login-app
+            git pull origin main
+            npm install
+            pm2 restart all || pm2 start server.js
+          EOF
