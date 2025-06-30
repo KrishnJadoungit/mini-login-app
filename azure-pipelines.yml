@@ -6,29 +6,26 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  ssh_key_file: ec2-key.pem
-  ec2_user: ec2-user
-  ec2_ip: $(EC2_PUBLIC_IP)         # Secret me add kiya hua
-  ssh_key_base64: $(EC2_SSH_KEY)   # Secret me add kiya hua
-
 jobs:
 - job: Deploy
+  variables:
+    ssh_key_file: ec2-key.pem
+
   steps:
   - task: Bash@3
-    displayName: "🔐 Decode SSH key"
+    displayName: "🔐 Decode SSH Key"
     inputs:
       targetType: inline
       script: |
-        echo "$ssh_key_base64" | base64 -d > $ssh_key_file
-        chmod 600 $ssh_key_file
+        echo "$(EC2_SSH_KEY)" | base64 -d > $(ssh_key_file)
+        chmod 600 $(ssh_key_file)
 
   - task: Bash@3
-    displayName: "🚀 Deploy to EC2"
+    displayName: "🚀 SSH and Deploy"
     inputs:
       targetType: inline
       script: |
-        ssh -o StrictHostKeyChecking=no -i $ssh_key_file $ec2_user@$ec2_ip << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i $(ssh_key_file) ec2-user@$(EC2_PUBLIC_IP) << 'EOF'
           cd ~/mini-login-app
           git pull origin main
           npm install
