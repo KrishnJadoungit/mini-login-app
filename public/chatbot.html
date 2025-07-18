@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Chatbot</title>
+</head>
+<body>
+  <h1>Basic AI Chatbot</h1>
+  <textarea id="question" placeholder="Ask me anything..." rows="4" cols="50"></textarea><br/>
+  <button onclick="askBot()">Send</button>
+
+  <h3>AI Response:</h3>
+  <p id="response"></p>
+
+  <script>
+  async function askBot() {
+    const question = document.getElementById('question').value;
+
+    const res = await fetch('/api/chatbot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+
+    const data = await res.json();
+    document.getElementById('response').innerText = data.answer || 'No answer';
+  }
+</script>
+
+</body>
+</html>

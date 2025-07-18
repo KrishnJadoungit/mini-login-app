@@ -3,11 +3,14 @@ const mongoose = require('mongoose');                // MongoDB se connect hone 
 const path = require('path');                        // File path handle karne ke liye built-in module
 const dotenv = require('dotenv');                    // .env file se secrets fetch karne ke liye
 const jwt = require('jsonwebtoken');                 // Token generate karne ke liye
-const User = require('./model/Temp');               // User model import karte hain
+const User = require('./model/Temp');      
+// 👇 New: Chatbot route
+const chatbotRoute = require('./routes/chatbot');         // User model import karte hain
 
 dotenv.config();                                     // .env file ke variables load ho jaate hain
 
-const app = express();                               // Express app create
+const app = express(); 
+app.use(express.json());                              // Express app create
 
 app.use(express.urlencoded({ extended: true }));     // Form data handle karne ke liye middleware
 app.use(express.static('public'));                   // Public folder serve karte hain (CSS/image)
@@ -35,6 +38,8 @@ app.post('/submit', async (req, res) => {
   // Success dashboard page dikha rahe hain
   res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
+
+app.use('/api', chatbotRoute);
 
 // Server ko start karte hain
 const PORT = process.env.PORT || 3000;
