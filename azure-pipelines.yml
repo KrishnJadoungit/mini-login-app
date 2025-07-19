@@ -7,58 +7,65 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  - group: EC2Secrets   # ✔️ Yeh tumhara variable group hai (EC2 + Docker vars)
+  - name: DOCKER_REPOSITORY
+    value: jadoun/mini-login-app
+  - name: DOCKER_IMAGE_TAG
+    value: latest
+  - name: DOCKER_USERNAME
+    value: jadoun
+  - name: DOCKER_PASSWORD
+    value: $(DOCKER_PASSWORD)  # Azure DevOps secret
+  - name: EC2_SSH_KEY
+    value: $(EC2_SSH_KEY)
+  - name: EC2_PUBLIC_IP
+    value: $(EC2_PUBLIC_IP)
 
 jobs:
 - job: BuildAndPush
   displayName: "🐳 Build & Push Docker Image"
   steps:
-
-    - checkout: self
-
     - task: Bash@3
       displayName: "🔑 Docker Login"
       inputs:
-        targetType: 'inline'
+        targetType: inline
         script: |
-          echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
+          echo "$(DOCKER_PASSWORD)" | docker login -u $(DOCKER_USERNAME) --password-stdin
 
     - task: Bash@3
-      displayName: "🐳 Build Docker Image"
+      displayName: "🔨 Build Docker Image"
       inputs:
-        targetType: 'inline'
+        targetType: inline
         script: |
-          docker build -t $(DOCKER_USERNAME)/mini-login-app:latest .
-    
+          docker build -t $(DOCKER_REPOSITORY):$(DOCKER_IMAGE_TAG) .
+
     - task: Bash@3
       displayName: "📤 Push Docker Image"
       inputs:
-        targetType: 'inline'
+        targetType: inline
         script: |
-          docker push $(DOCKER_USERNAME)/mini-login-app:latest
+          docker push $(DOCKER_REPOSITORY):$(DOCKER_IMAGE_TAG)
 
-- job: Deploy
+- job: DeployToEC2
   displayName: "🚀 SSH to EC2 & Deploy Container"
   dependsOn: BuildAndPush
   steps:
-
     - task: Bash@3
-      displayName: "🔑 Decode PEM Key"
+      displayName: "🔐 Decode EC2 Key"
       inputs:
-        targetType: 'inline'
+        targetType: inline
         script: |
           echo "$(EC2_SSH_KEY)" | base64 -d > ec2-key.pem
           chmod 600 ec2-key.pem
 
     - task: Bash@3
-      displayName: "🚀 SSH & Pull/Run Container"
+      displayName: "🚀 Pull & Run Container on EC2"
       inputs:
-        targetType: 'inline'
+        targetType: inline
         script: |
           ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@$(EC2_PUBLIC_IP) << 'EOF'
-            docker pull $(DOCKER_USERNAME)/mini-login-app:latest
+            docker pull $(DOCKER_REPOSITORY):$(DOCKER_IMAGE_TAG)
             docker stop mini-login-app || true
             docker rm mini-login-app || true
-            docker run -d -p 80:3000 --name mini-login-app $(DOCKER_USERNAME)/mini-login-app:latest
+            docker run -d -p 80:3000 --name mini-login-app $(DOCKER_REPOSITORY):$(DOCKER_IMAGE_TAG)
             docker ps
           EOF
