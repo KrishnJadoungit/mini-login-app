@@ -7,22 +7,46 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  - group: EC2Secrets  # Ye group jisme tumhara SSH_KEY aur PUBLIC_IP hai
+  - group: EC2Secrets   # ✅ Make sure you’ve linked this in your pipeline Library
 
 jobs:
-- job: DeployDocker
-  displayName: "🐳 Deploy with Docker"
+# -------------------------------------------
+# 1️⃣ BUILD & PUSH DOCKER IMAGE
+# -------------------------------------------
+- job: BuildAndPush
+  displayName: "🐳 Build & Push Docker Image"
   steps:
+    - checkout: self
+
     - task: Bash@3
-      displayName: "🔑 Decode PEM Key"
+      displayName: "🔑 Docker Login & Build"
+      inputs:
+        targetType: inline
+        script: |
+          echo "$(DOCKER_PASSWORD)" | docker login -u $(DOCKER_USERNAME) --password-stdin
+          docker build -t jadoun/mini-login-app:latest .
+          docker push jadoun/mini-login-app:latest
+
+# -------------------------------------------
+# 2️⃣ DEPLOY TO EC2
+# -------------------------------------------
+- job: Deploy
+  dependsOn: BuildAndPush
+  displayName: "🚀 SSH to EC2 & Deploy Container"
+  steps:
+
+    - task: Bash@3
+      name: DecodeKey
+      displayName: "🔐 Decode EC2 SSH Key"
       inputs:
         targetType: inline
         script: |
           echo "$(EC2_SSH_KEY)" | base64 -d > ec2-key.pem
           chmod 600 ec2-key.pem
+          ls -l ec2-key.pem
 
     - task: Bash@3
-      displayName: "🚀 SSH to EC2 and Deploy Container"
+      displayName: "📡 SSH Pull & Run Docker Container"
       inputs:
         targetType: inline
         script: |
