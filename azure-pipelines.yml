@@ -7,16 +7,18 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
+  - name: DOCKER_REGISTRY
+    value: docker.io
   - name: DOCKER_REPOSITORY
     value: jadoun/mini-login-app
   - name: DOCKER_IMAGE_TAG
     value: latest
   - name: DOCKER_USERNAME
-    value: jadoun
+    value: $(DOCKER_USERNAME)    # ✅ Azure DevOps variable (secret)
   - name: DOCKER_PASSWORD
-    value: $(DOCKER_PASSWORD)  # Azure DevOps secret
+    value: $(DOCKER_PASSWORD)    # ✅ Azure DevOps variable (secret)
   - name: EC2_SSH_KEY
-    value: $(EC2_SSH_KEY)
+    value: $(EC2_SSH_KEY)        # ✅ Base64 encoded .pem key
   - name: EC2_PUBLIC_IP
     value: $(EC2_PUBLIC_IP)
 
@@ -24,6 +26,8 @@ jobs:
 - job: BuildAndPush
   displayName: "🐳 Build & Push Docker Image"
   steps:
+    - checkout: self
+
     - task: Bash@3
       displayName: "🔑 Docker Login"
       inputs:
